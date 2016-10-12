@@ -1,2 +1,2 @@
 # lineDrawer
-Dras an image using only straight lines
+Draws an image using only straight lines
