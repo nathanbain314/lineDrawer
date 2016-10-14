@@ -10,7 +10,21 @@ Based on the website [linify.me](http://linify.me), this finds the darkest point
 - -d,  --darkness : Darkness of lines. Integer from 1 to 255, with 255 being completely black.
 
 #RunLineRect
+Finds the darkest line on the image between two points on the outside and draw it.
 ##options
+- -i,  --input : Input image.
+- -o,  --output : Output image.
+- -n,  --number : Number of lines to draw.
+- -p,  --points : Number of points on outside
+- -d,  --darkness : Darkness of lines. Integer from 1 to 255, with 255 being completely black.
 
 #RunLineEllipse
+Finds the darkest line on the image between two points on an ellipse and draw it.
 ##options
+- -i,  --input : Input image.
+- -o,  --output : Output image.
+- -n,  --number : Number of lines to draw.
+- -p,  --points : Number of points on outside
+- -d,  --darkness : Darkness of lines. Integer from 1 to 255, with 255 being completely black.
+- -w,  --width : Width of eclipse.
+- -h,  --height : Height of eclipse.
