@@ -9,7 +9,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
-void drawRect( string input_image, string output_image, int lines, int points, int darkness )
+void drawRect( string input_image, string output_image, int lines, int points, int darkness, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
@@ -18,7 +18,7 @@ void drawRect( string input_image, string output_image, int lines, int points, i
   int width = image.width();
   int height = image.height();
 
-  VImage output = VImage::black(width,height).invert();
+  VImage output = inverted ? VImage::black(width,height) : VImage::black(width,height).invert();
 
   unsigned char * data2 = (unsigned char *)output.data();
 
@@ -35,7 +35,7 @@ void drawRect( string input_image, string output_image, int lines, int points, i
 
   for( int k = 0; k < lines; ++k )
   {
-    double difference = DBL_MAX;
+    double difference = inverted ? DBL_MIN : DBL_MAX;
     int pos[4] = {0,0,0,0};
     double slope2 = 0;
 
@@ -68,7 +68,7 @@ void drawRect( string input_image, string output_image, int lines, int points, i
             diff += (int)data[y*width+x];
           }
 
-          if( diff/(endy-starty) < difference )
+          if( ( inverted && diff/(endy-starty) > difference ) || ( !inverted && diff/(endy-starty) < difference ) )
           {
             difference = diff/(endy-starty);
             pos[0]=x1;
@@ -92,7 +92,7 @@ void drawRect( string input_image, string output_image, int lines, int points, i
             diff += (int)data[y*width+x];
           }
 
-          if( diff/(endx-startx) < difference )
+          if( ( inverted && diff/(endx-startx) > difference ) || ( !inverted && diff/(endx-startx) < difference ) )
           {
             difference = diff/(endx-startx);
             pos[0]=x1;
@@ -117,8 +117,16 @@ void drawRect( string input_image, string output_image, int lines, int points, i
       for( int y = starty; y < endy; ++y )
       {
         int x = pos[0] + round((double)( y - pos[1] ) * slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
     else
@@ -128,8 +136,16 @@ void drawRect( string input_image, string output_image, int lines, int points, i
       for( int x = startx; x < endx; ++x )
       {
         int y = y1 + round((double)( x - x1 ) * slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
 
@@ -149,6 +165,8 @@ int main( int argc, char **argv )
   {
     CmdLine cmd("Draws an image from straight lines.", ' ', "1.0");
 
+    SwitchArg invertSwitch("v","inverted","Draw white lines on a black background", cmd, false);
+
     ValueArg<double> darknessArg( "d", "darkness", "Darkness of lines. Integer from 1 to 255, with 255 being completely black.", false, 50, "int", cmd);
 
     ValueArg<double> pointsArg( "p", "points", "Number of points on outside", false, 64, "int", cmd);
@@ -166,11 +184,12 @@ int main( int argc, char **argv )
     int n               = linesArg.getValue();
     int points          = pointsArg.getValue();
     int darkness        = darknessArg.getValue();
+    bool inverted       = invertSwitch.getValue();
 
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
-    drawRect( input_image, output_image, n, points, darkness );
+    drawRect( input_image, output_image, n, points, darkness, inverted );
 
     vips_shutdown();
   }

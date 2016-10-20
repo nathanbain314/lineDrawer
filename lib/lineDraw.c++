@@ -9,7 +9,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
-void drawLine( string input_image, string output_image, int lines, int darkness )
+void drawLine( string input_image, string output_image, int lines, int darkness, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
@@ -18,7 +18,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
   int width = image.width();
   int height = image.height();
 
-  VImage output = VImage::black(width,height).invert();
+  VImage output = inverted ? VImage::black(width,height) : VImage::black(width,height).invert();
 
   unsigned char * data2 = (unsigned char *)output.data();
 
@@ -34,13 +34,13 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
 
   for( int k = 0; k < lines; ++k )
   {
-    min_color = INT_MAX;
+    min_color = inverted ? INT_MIN : INT_MAX;
     for( int i = 1, p = width+1; i < height-1; ++i, p+=2 )
     {
       for( int j = 1; j < width-1; ++j, ++p )
       {
         int color = (int)data[p];
-        if( color < min_color )
+        if( ( inverted && color > min_color ) || ( !inverted && color < min_color ) )
         {
           min_color = color;
           min_x = j;
@@ -49,7 +49,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
       }
     }
 
-    double difference = DBL_MAX;
+    double difference = inverted ? DBL_MIN : DBL_MAX;
     int pos[4] = {0,0,0,0};
     double slope2 = 0;
 
@@ -88,7 +88,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
           diff += (int)data[y*width+x];
         }
 
-        if( diff/(endy-starty) < difference )
+        if( ( inverted && diff/(endy-starty) > difference ) || ( !inverted && diff/(endy-starty) < difference ) )
         {
           difference = diff/(endy-starty);
           pos[0]=x1;
@@ -111,7 +111,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
           diff += (int)data[y*width+x];
         }
 
-        if( diff/(endx-startx) < difference )
+        if( ( inverted && diff/(endx-startx) > difference ) || ( !inverted && diff/(endx-startx) < difference ) )
         {
           difference = diff/(endx-startx);
           pos[0]=x1;
@@ -135,8 +135,16 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
       for( int y = starty; y < endy; ++y )
       {
         int x = pos[0] + round((double)( y - pos[1] ) / slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
     else
@@ -146,8 +154,16 @@ void drawLine( string input_image, string output_image, int lines, int darkness 
       for( int x = startx; x < endx; ++x )
       {
         int y = y1 + round((double)( x - x1 ) * slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
 
@@ -169,6 +185,8 @@ int main( int argc, char **argv )
   {
     CmdLine cmd("Draws an image from straight lines.", ' ', "1.0");
 
+    SwitchArg invertSwitch("v","inverted","Draw white lines on a black background", cmd, false);
+
     ValueArg<double> darknessArg( "d", "darkness", "Darkness of lines. Integer from 1 to 255, with 255 being completely black.", false, 50, "int", cmd);
 
     ValueArg<double> linesArg( "n", "number", "Number of lines to draw", false, 1000, "int", cmd);
@@ -183,11 +201,12 @@ int main( int argc, char **argv )
     string output_image = outputArg.getValue();
     int n               = linesArg.getValue();
     int darkness        = darknessArg.getValue();
+    bool inverted       = invertSwitch.getValue();
 
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
-    drawLine( input_image, output_image, n, darkness );
+    drawLine( input_image, output_image, n, darkness, inverted );
 
     vips_shutdown();
   }

@@ -12,7 +12,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
-void drawEllipse( string input_image, string output_image, int lines, int points, int darkness, float ellipse_width, float ellipse_height )
+void drawEllipse( string input_image, string output_image, int lines, int points, int darkness, float ellipse_width, float ellipse_height, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
@@ -26,7 +26,7 @@ void drawEllipse( string input_image, string output_image, int lines, int points
   ellipse_height = ( ellipse_height > 0 ) ? ellipse_height : height;
   ellipse_width = ( ellipse_width > 0 ) ? ellipse_width : width;
 
-  VImage output = VImage::black(width,height).invert();
+  VImage output = inverted ? VImage::black(width,height) : VImage::black(width,height).invert();
 
   unsigned char * data2 = (unsigned char *)output.data();
 
@@ -41,7 +41,7 @@ void drawEllipse( string input_image, string output_image, int lines, int points
 
   for( int k = 0; k < lines; ++k )
   {
-    double difference = DBL_MAX;
+    double difference = inverted ? DBL_MIN : DBL_MAX;
     int pos[6] = {0,0,0,0,0,0};
     double slope2 = 0;
     int p = 0;
@@ -73,7 +73,7 @@ void drawEllipse( string input_image, string output_image, int lines, int points
             diff += (int)data[y*width+x];
           }
 
-          if( diff/(endy-starty) < difference )
+          if( ( inverted && diff/(endy-starty) > difference ) || ( !inverted && diff/(endy-starty) < difference ) )
           {
             difference = diff/(endy-starty);
             pos[0]=x1;
@@ -99,7 +99,7 @@ void drawEllipse( string input_image, string output_image, int lines, int points
             diff += (int)data[y*width+x];
           }
 
-          if( diff/(endx-startx) < difference )
+          if( ( inverted && diff/(endx-startx) > difference ) || ( !inverted && diff/(endx-startx) < difference ) )
           {
             difference = diff/(endx-startx);
             pos[0]=x1;
@@ -128,8 +128,16 @@ void drawEllipse( string input_image, string output_image, int lines, int points
       for( int y = starty; y < endy; ++y )
       {
         int x = pos[0] + round((double)( y - pos[1] ) * slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x] - darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
     else
@@ -139,8 +147,16 @@ void drawEllipse( string input_image, string output_image, int lines, int points
       for( int x = startx; x < endx; ++x )
       {
         int y = y1 + round((double)( x - x1 ) * slope2);
-        data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
-        data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        if( inverted )
+        {
+          data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
+          data[y*width+x] = ( data[y*width+x] > darkness ) ? data[y*width+x]- darkness : 0;
+        }
+        else
+        {
+          data[y*width+x] = ( data[y*width+x] < 255 - darkness ) ? data[y*width+x] + darkness : 255;
+          data2[y*width+x] = ( data2[y*width+x] > darkness ) ? data2[y*width+x]- darkness : 0;
+        }
       }
     }
 
@@ -165,6 +181,8 @@ int main( int argc, char **argv )
   {
     CmdLine cmd("Draws a elliptical image from straight lines.", ' ', "1.0");
 
+    SwitchArg invertSwitch("v","inverted","Draw white lines on a black background", cmd, false);
+
     ValueArg<double> lengthArg( "l", "length", "Height of elipse", false, -1, "int", cmd);
 
     ValueArg<double> widthArg( "w", "width", "Width of elipse", false, -1, "int", cmd);
@@ -188,11 +206,12 @@ int main( int argc, char **argv )
     int darkness        = darknessArg.getValue();
     int width           = widthArg.getValue();
     int height          = lengthArg.getValue();
+    bool inverted       = invertSwitch.getValue();
 
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
-    drawEllipse( input_image, output_image, n, points, darkness, width, height);
+    drawEllipse( input_image, output_image, n, points, darkness, width, height, inverted );
 
     vips_shutdown();
   }
