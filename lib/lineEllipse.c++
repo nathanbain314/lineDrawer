@@ -5,6 +5,7 @@
 #include <vips/vips8>
 #include <tclap/CmdLine.h>
 #include "progressbar.h"
+#include "shortestPath.h"
 
 #define TAU 6.283185307
 
@@ -12,7 +13,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
-void drawEllipse( string input_image, string output_image, int lines, int points, int darkness, float ellipse_width, float ellipse_height, bool inverted )
+vector< pair< int, int > > drawEllipse( string input_image, string output_image, int lines, int points, int darkness, float ellipse_width, float ellipse_height, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
@@ -35,20 +36,23 @@ void drawEllipse( string input_image, string output_image, int lines, int points
   vector<double> black = {0,0,0};
   vector<double> white = {255,255,255};
 
-  bool used[(points*(points-1))/2];
+  bool *used = new bool[((points-1)*(points-2))/2]();
+  vector< pair< int, int > > requiredEdges;
 
   progressbar *processing_images = progressbar_new("Generating", lines);
 
   for( int k = 0; k < lines; ++k )
   {
     double difference = inverted ? DBL_MIN : DBL_MAX;
-    int pos[6] = {0,0,0,0,0,0};
+    int pos[8] = {0,0,0,0,0,0,0,0};
     double slope2 = 0;
     int p = 0;
 
+    int endPoints = points - 1;
+
     for( double d1 = 0; d1 < points; ++d1 )
     {
-      for( double d2 = d1+1; d2 < points; ++d2, ++p )
+      for( double d2 = d1+2; d2 < endPoints; ++d2, ++p )
       {
         if( used[p] ) continue;
         x1 = (int)(cos(d1*TAU/points)*ellipse_width/2+width/2);
@@ -82,6 +86,8 @@ void drawEllipse( string input_image, string output_image, int lines, int points
             pos[3]=y2;
             pos[4]=d1*points+d2;
             pos[5]=p;
+            pos[6]=d1;
+            pos[7]=d2;
             slope2 = slope;
           }
         }
@@ -108,10 +114,13 @@ void drawEllipse( string input_image, string output_image, int lines, int points
             pos[3]=y2;
             pos[4]=d1*points+d2;
             pos[5]=p;
+            pos[6]=d1;
+            pos[7]=d2;
             slope2 = slope;
           }
         }
       }
+      endPoints = points;
     }
 
     x1 = pos[0];
@@ -120,6 +129,8 @@ void drawEllipse( string input_image, string output_image, int lines, int points
     y2 = pos[3];
     d  = pos[4];
     p  = pos[5];
+
+    requiredEdges.push_back( pair< int, int >( pos[6], pos[7] ) );
 
     if(abs(y1-y2)>abs(x1-x2))
     {
@@ -163,17 +174,116 @@ void drawEllipse( string input_image, string output_image, int lines, int points
     lines_used.push_back( pair< int, int >( d/points, d%points ) );
     used[p] = true;
 
-    //data[min_y*width+min_x] = 255;
-    //image.draw_line( white, pos[0], pos[1], pos[2], pos[3] );
-    //output.draw_line( black, pos[0], pos[1], pos[2], pos[3] );
     progressbar_inc( processing_images );
   }
 
   progressbar_finish( processing_images );
   output.pngsave( (char *)output_image.c_str() );
+  return requiredEdges;
 }
 
+void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int numToDo )
+{
+  vector< vector<int> > edges(numPoints);
 
+  for ( vector < pair<int,int> >::const_iterator it = requiredEdges.begin() ; it != requiredEdges.end(); ++it)
+  {
+    edges[it->first].push_back(it->second);
+    edges[it->second].push_back(it->first);
+  }
+
+  vector<int> even, odd;
+
+  for( int i = 0; i < numPoints; ++i )
+  {
+    int size = edges[i].size();
+    if( size > 0 )
+    {
+      if( size%2 == 0  )
+      {
+        even.push_back(i);
+      }
+      else
+      {
+        odd.push_back(i);
+      }
+    }
+  }
+
+  vector<int> pathVec;
+  int minPath = INT_MAX/2;
+
+  if( odd.size() > 0 )
+  {
+    for( int j = 0; j < odd.size(); ++j )
+    {  
+      int i = odd[j];
+      vector<int> path = shortestPathFromPoint( edges, i, requiredEdges.size(), numPoints, numToDo );
+      if(path.size() <= minPath)
+      {
+        minPath = path.size();
+        pathVec = path;
+      }
+    }
+  }
+  else
+  {
+    for( int j = 0; j < even.size(); ++j )
+    {
+      int i = even[j];
+      vector<int> path = shortestPathFromPoint( edges, i, requiredEdges.size(), numPoints, numToDo );
+      if(path.size() <= minPath)
+      {
+        minPath = path.size();
+        pathVec = path;
+      }
+    }
+  }
+
+  bool broken = false;
+  for( int i = 1; i <= pathVec.size()-1 ; ++i )
+  {
+    pair< int, int > edge = ( pathVec[i-1] < pathVec[i] ) ? pair< int, int >(pathVec[i-1],pathVec[i]) : pair< int, int >( pathVec[i],pathVec[i-1] );
+    if( abs( edge.second - edge.first ) != 1 && abs( edge.second - edge.first ) != numPoints - 1 )
+    {
+      bool change = false;
+      for( int i = 0; i < requiredEdges.size(); ++i )
+      {
+        if( edge == requiredEdges[i] )
+        {
+          requiredEdges.erase(requiredEdges.begin() + i);
+          change = true;
+          break;
+        }
+      }
+      if( change == false )
+      {
+        cout << edge.first << " " << edge.second << endl;
+      }
+      broken = broken && change;
+    }
+  }
+
+  if( broken || requiredEdges.size() > 0 )
+  {
+     cout << "Doesn't work\n";
+    for( int i = requiredEdges.size()-1; i >= 0 ; --i )
+    {
+      cout << requiredEdges[i].first << " " << requiredEdges[i].second << ",";
+    }
+    cout << endl;
+  }
+  else
+  {
+    cout << "length: " << pathVec.size() << endl;
+
+    for( int i = pathVec.size()-1; i >= 0 ; --i )
+    {
+      cout << pathVec[i] << ",";
+    }
+    cout << endl;
+  }
+}
 
 int main( int argc, char **argv )
 {  
@@ -211,7 +321,9 @@ int main( int argc, char **argv )
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
-    drawEllipse( input_image, output_image, n, points, darkness, width, height, inverted );
+    vector< pair< int, int > > requiredEdges = drawEllipse( input_image, output_image, n, points, darkness, width, height, inverted );
+
+    processEdges( requiredEdges, points, 100000 );
 
     vips_shutdown();
   }
