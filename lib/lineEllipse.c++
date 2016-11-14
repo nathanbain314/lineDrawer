@@ -19,8 +19,6 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
 
   unsigned char * data = (unsigned char *)image.data();
 
-  vector< pair< int, int > > lines_used;
-
   int width = image.width();
   int height = image.height();
 
@@ -171,7 +169,6 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
       }
     }
 
-    lines_used.push_back( pair< int, int >( d/points, d%points ) );
     used[p] = true;
 
     progressbar_inc( processing_images );
@@ -180,109 +177,6 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
   progressbar_finish( processing_images );
   output.pngsave( (char *)output_image.c_str() );
   return requiredEdges;
-}
-
-void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int numToDo )
-{
-  vector< vector<int> > edges(numPoints);
-
-  for ( vector < pair<int,int> >::const_iterator it = requiredEdges.begin() ; it != requiredEdges.end(); ++it)
-  {
-    edges[it->first].push_back(it->second);
-    edges[it->second].push_back(it->first);
-  }
-
-  vector<int> even, odd;
-
-  for( int i = 0; i < numPoints; ++i )
-  {
-    int size = edges[i].size();
-    if( size > 0 )
-    {
-      if( size%2 == 0  )
-      {
-        even.push_back(i);
-      }
-      else
-      {
-        odd.push_back(i);
-      }
-    }
-  }
-
-  vector<int> pathVec;
-  int minPath = INT_MAX/2;
-
-  if( odd.size() > 0 )
-  {
-    for( int j = 0; j < odd.size(); ++j )
-    {  
-      int i = odd[j];
-      vector<int> path = shortestPathFromPoint( edges, i, requiredEdges.size(), numPoints, numToDo );
-      if(path.size() <= minPath)
-      {
-        minPath = path.size();
-        pathVec = path;
-      }
-    }
-  }
-  else
-  {
-    for( int j = 0; j < even.size(); ++j )
-    {
-      int i = even[j];
-      vector<int> path = shortestPathFromPoint( edges, i, requiredEdges.size(), numPoints, numToDo );
-      if(path.size() <= minPath)
-      {
-        minPath = path.size();
-        pathVec = path;
-      }
-    }
-  }
-
-  bool broken = false;
-  for( int i = 1; i <= pathVec.size()-1 ; ++i )
-  {
-    pair< int, int > edge = ( pathVec[i-1] < pathVec[i] ) ? pair< int, int >(pathVec[i-1],pathVec[i]) : pair< int, int >( pathVec[i],pathVec[i-1] );
-    if( abs( edge.second - edge.first ) != 1 && abs( edge.second - edge.first ) != numPoints - 1 )
-    {
-      bool change = false;
-      for( int i = 0; i < requiredEdges.size(); ++i )
-      {
-        if( edge == requiredEdges[i] )
-        {
-          requiredEdges.erase(requiredEdges.begin() + i);
-          change = true;
-          break;
-        }
-      }
-      if( change == false )
-      {
-        cout << edge.first << " " << edge.second << endl;
-      }
-      broken = broken && change;
-    }
-  }
-
-  if( broken || requiredEdges.size() > 0 )
-  {
-     cout << "Doesn't work\n";
-    for( int i = requiredEdges.size()-1; i >= 0 ; --i )
-    {
-      cout << requiredEdges[i].first << " " << requiredEdges[i].second << ",";
-    }
-    cout << endl;
-  }
-  else
-  {
-    cout << "length: " << pathVec.size() << endl;
-
-    for( int i = pathVec.size()-1; i >= 0 ; --i )
-    {
-      cout << pathVec[i] << ",";
-    }
-    cout << endl;
-  }
 }
 
 int main( int argc, char **argv )

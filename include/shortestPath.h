@@ -13,3 +13,4 @@ struct splitPoint
 };
 
 vector<int> shortestPathFromPoint( vector< vector<int> > edges, int node, int startRequired, int numPoints, int numToDo );
+void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int numToDo );

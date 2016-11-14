@@ -4,12 +4,13 @@
 #include <vips/vips8>
 #include <tclap/CmdLine.h>
 #include "progressbar.h"
+#include "shortestPath.h"
 
 using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
-void drawRect( string input_image, string output_image, int lines, int points, int darkness, bool inverted )
+vector< pair< int, int > > drawRect( string input_image, string output_image, int lines, int points, int darkness, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
@@ -22,27 +23,37 @@ void drawRect( string input_image, string output_image, int lines, int points, i
 
   unsigned char * data2 = (unsigned char *)output.data();
 
-  int x1, y1, x2, y2;
+  int x1, y1, x2, y2, d;
 
   vector<double> black = {0,0,0};
   vector<double> white = {255,255,255};
+
+  bool *used = new bool[((points-1)*(points-2))/2]();
+  vector< pair< int, int > > requiredEdges;
 
   int sizeEdge = 2* ( width + height );
 
   int increment = sizeEdge / points;
 
-  progressbar *processing_images = progressbar_new("Generating", lines );
+  progressbar *processing_images = progressbar_new( "Generating", lines );
 
   for( int k = 0; k < lines; ++k )
   {
     double difference = inverted ? DBL_MIN : DBL_MAX;
-    int pos[4] = {0,0,0,0};
+    int pos[8] = {0,0,0,0,0,0,0,0};
     double slope2 = 0;
+    int p = 0;
 
-    for( int p1 = 0; p1 < sizeEdge; p1+=increment )
+    int endPoints = points - 1;
+
+    for( int ps1 = 0; ps1 < points; ++ps1 )
     {
-      for( int p2 = p1+increment; p2 < sizeEdge; p2+=increment )
+      for( int ps2 = ps1 + 2; ps2 < endPoints; ++p, ++ps2 )
       {
+        if( used[p] ) continue;
+
+        int p1 = ( sizeEdge * ps1 ) / points;
+        int p2 = ( sizeEdge * ps2 ) / points;
 
         x1 = ( p1 < width * 2 ) ? p1 % width : ( (p1 - 2*width)/height ) * (width-1);
         y1 = ( p1 < width * 2 ) ? (p1 / width) * (height-1) : (p1 - 2*width)%height;
@@ -75,6 +86,10 @@ void drawRect( string input_image, string output_image, int lines, int points, i
             pos[1]=y1;
             pos[2]=x2;
             pos[3]=y2;
+            pos[4]=p1*sizeEdge+p2;
+            pos[5]=p;
+            pos[6]=ps1;
+            pos[7]=ps2;
             slope2 = slope;
           }
         }
@@ -99,16 +114,25 @@ void drawRect( string input_image, string output_image, int lines, int points, i
             pos[1]=y1;
             pos[2]=x2;
             pos[3]=y2;
+            pos[4]=p1*sizeEdge+p2;
+            pos[5]=p;
+            pos[6]=ps1;
+            pos[7]=ps2;
             slope2 = slope;
           }
         }
       }
+      endPoints = points;
     }
 
     x1 = pos[0];
     y1 = pos[1];
     x2 = pos[2];
     y2 = pos[3];
+    d  = pos[4];
+    p  = pos[5];
+
+    requiredEdges.push_back( pair< int, int >( pos[6], pos[7] ) );
 
     if(abs(y1-y2)>abs(x1-x2))
     {
@@ -149,14 +173,14 @@ void drawRect( string input_image, string output_image, int lines, int points, i
       }
     }
 
-    //data[min_y*width+min_x] = 255;
-    //image.draw_line( white, pos[0], pos[1], pos[2], pos[3] );
-    //output.draw_line( black, pos[0], pos[1], pos[2], pos[3] );
+    used[p] = true;
+
     progressbar_inc( processing_images );
   }
 
   progressbar_finish( processing_images );
   output.pngsave( (char *)output_image.c_str() );
+  return requiredEdges;
 }
 
 int main( int argc, char **argv )
@@ -189,7 +213,9 @@ int main( int argc, char **argv )
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
-    drawRect( input_image, output_image, n, points, darkness, inverted );
+    vector< pair< int, int > > requiredEdges = drawRect( input_image, output_image, n, points, darkness, inverted );
+
+    processEdges( requiredEdges, points, 100000 );
 
     vips_shutdown();
   }
