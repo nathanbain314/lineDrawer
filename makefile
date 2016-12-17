@@ -1,6 +1,6 @@
 CXX += -std=c++11 -stdlib=libc++ -O3 -g
 
-EXECUTABLE = RunLineDraw RunLineRect RunLineEllipse
+EXECUTABLE = RunGridDraw RunLineDraw RunLineRect RunLineEllipse
 
 SRC = lib
 INCLUDE = include
@@ -11,6 +11,9 @@ LDLIBS = -lncurses
 VIPS_FLAGS = `pkg-config vips-cpp --cflags --libs`
 
 all: $(EXECUTABLE)
+
+RunGridDraw: $(OBJDIR)/gridDraw.o $(OBJDIR)/progressbar.o
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $(VIPS_FLAGS) $(OBJDIR)/gridDraw.o $(OBJDIR)/progressbar.o -o RunGridDraw
 
 RunLineDraw: $(OBJDIR)/lineDraw.o $(OBJDIR)/progressbar.o
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $(VIPS_FLAGS) $(OBJDIR)/lineDraw.o $(OBJDIR)/progressbar.o -o RunLineDraw

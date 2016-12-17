@@ -36,6 +36,7 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
 
   bool *used = new bool[((points-1)*(points-2))/2]();
   vector< pair< int, int > > requiredEdges;
+  double totalLength = 0.0;
 
   progressbar *processing_images = progressbar_new("Generating", lines);
 
@@ -128,6 +129,8 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
     d  = pos[4];
     p  = pos[5];
 
+    totalLength += sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) )/512;
+
     requiredEdges.push_back( pair< int, int >( pos[6], pos[7] ) );
 
     if(abs(y1-y2)>abs(x1-x2))
@@ -176,6 +179,9 @@ vector< pair< int, int > > drawEllipse( string input_image, string output_image,
 
   progressbar_finish( processing_images );
   output.pngsave( (char *)output_image.c_str() );
+
+  cout << "Total Length: " << totalLength << endl;
+
   return requiredEdges;
 }
 
@@ -186,6 +192,8 @@ int main( int argc, char **argv )
     CmdLine cmd("Draws a elliptical image from straight lines.", ' ', "1.0");
 
     SwitchArg invertSwitch("v","inverted","Draw white lines on a black background", cmd, false);
+
+    ValueArg<double> numPathsArg( "t", "numPaths", "Number of paths to check.", false, 1000, "int", cmd);
 
     ValueArg<double> lengthArg( "l", "length", "Height of elipse", false, -1, "int", cmd);
 
@@ -210,6 +218,7 @@ int main( int argc, char **argv )
     int darkness        = darknessArg.getValue();
     int width           = widthArg.getValue();
     int height          = lengthArg.getValue();
+    int numPaths        = numPathsArg.getValue();
     bool inverted       = invertSwitch.getValue();
 
     if( vips_init( argv[0] ) )
@@ -217,7 +226,7 @@ int main( int argc, char **argv )
 
     vector< pair< int, int > > requiredEdges = drawEllipse( input_image, output_image, n, points, darkness, width, height, inverted );
 
-    processEdges( requiredEdges, points, 100000 );
+    processEdges( requiredEdges, points, numPaths );
 
     vips_shutdown();
   }
