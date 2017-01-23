@@ -9,6 +9,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
+// Draws an image using straight lines
 void drawLine( string input_image, string output_image, int lines, int darkness, bool inverted )
 {
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
@@ -25,15 +26,15 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
   int min_color = INT_MAX;
   int min_x, min_y, x1, y1, x2, y2;
 
-  vector<double> black = {0,0,0};
-  vector<double> white = {255,255,255};
-
-  int sizeEdge = width + height;
+  // Number of pixels on edge of image
+  int sizeEdge = 2 * (width + height);
 
   progressbar *processing_images = progressbar_new("Generating", lines);
 
+  // Each pass draw another line
   for( int k = 0; k < lines; ++k )
   {
+    // Find the darkest point on the image
     min_color = inverted ? INT_MIN : INT_MAX;
     for( int i = 1, p = width+1; i < height-1; ++i, p+=2 )
     {
@@ -53,10 +54,11 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
     int pos[4] = {0,0,0,0};
     double slope2 = 0;
 
+    // Find the darkest line throught the darkest point
     for( int p = 0; p < sizeEdge; ++p)
     {
-      x1 = ( p < width ) ? p % width : 0;
-      y1 = ( p < width ) ? 0 : p - width;
+      x1 = ( p < 2*width ) ? p % width : 0;
+      y1 = ( p < 2*width ) ? 0 : (p - width)%height;
 
       int x_edge = ( min_x < x1 ) ? 0 : width-1;
       int y_edge = ( min_y < y1 ) ? 0 : height-1;
@@ -75,6 +77,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
         x2 = x1 + round((double)( y_edge - y1 ) / slope);
       }
 
+      // Use point-slope equation as a function of the longer edge
       if(abs(y1-y2)>abs(x1-x2))
       {
         int starty = min(y1,y2);
@@ -82,12 +85,14 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
 
         double diff = 0;
 
+        // Compute the sum of the darkness of the line
         for( int y = starty; y < endy; ++y )
         {
           int x = x1 + round((double)( y - y1 ) / slope);
           diff += (int)data[y*width+x];
         }
 
+        // If the line is on average darker than the other lines then use this line
         if( ( inverted && diff/(endy-starty) > difference ) || ( !inverted && diff/(endy-starty) < difference ) )
         {
           difference = diff/(endy-starty);
@@ -128,6 +133,7 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
     x2 = pos[2];
     y2 = pos[3];
 
+    // Draw the line using  the same point slope format as previously used
     if(abs(y1-y2)>abs(x1-x2))
     {
       int starty = min(y1,y2);
@@ -135,6 +141,8 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
       for( int y = starty; y < endy; ++y )
       {
         int x = pos[0] + round((double)( y - pos[1] ) / slope2);
+
+        // Shade the new image and unshade the original
         if( inverted )
         {
           data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
@@ -167,9 +175,6 @@ void drawLine( string input_image, string output_image, int lines, int darkness,
       }
     }
 
-    //data[min_y*width+min_x] = 255;
-    //image.draw_line( white, pos[0], pos[1], pos[2], pos[3] );
-    //output.draw_line( black, pos[0], pos[1], pos[2], pos[3] );
     progressbar_inc( processing_images );
   }
 

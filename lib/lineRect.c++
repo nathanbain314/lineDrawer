@@ -10,6 +10,7 @@ using namespace TCLAP;
 using namespace vips;
 using namespace std;
 
+// Given a point p on the rectangle, find the corresponding x and y positions
 void getPosition( int &x, int &y, int p, int width, int height )
 {
   if( p < width )
@@ -35,8 +36,10 @@ void getPosition( int &x, int &y, int p, int width, int height )
   return;
 }
 
+// Draws an image using straight lines on a rectangle
 vector< pair< int, int > > drawRect( string input_image, string output_image, int lines, int points, int darkness, bool inverted )
 {
+  // Load the image
   VImage image = VImage::vipsload( (char *)input_image.c_str() );
 
   unsigned char * data = (unsigned char *)image.data();
@@ -44,14 +47,12 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
   int width = image.width();
   int height = image.height();
 
+  // Create a black or white image to draw on
   VImage output = inverted ? VImage::black(width,height) : VImage::black(width,height).invert();
 
   unsigned char * data2 = (unsigned char *)output.data();
 
   int x1, y1, x2, y2, d;
-
-  vector<double> black = {0,0,0};
-  vector<double> white = {255,255,255};
 
   bool *used = new bool[((points-1)*(points-2))/2]();
   vector< pair< int, int > > requiredEdges;
@@ -63,6 +64,7 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
 
   progressbar *processing_images = progressbar_new( "Generating", lines );
 
+  // Each pass draw another line
   for( int k = 0; k < lines; ++k )
   {
     double difference = inverted ? DBL_MIN : DBL_MAX;
@@ -72,22 +74,27 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
 
     int endPoints = points - 1;
 
+    // For every point on the outside
     for( int ps1 = 0; ps1 < points; ++ps1 )
     {
+      // For every point on the outside that has not been checked and is not ajacent to the previous point
       for( int ps2 = ps1 + 2; ps2 < endPoints; ++p, ++ps2 )
       {
+        // Check to see if the edge has been used yet
         if( used[p] ) continue;
 
+        // Get the two points
         int p1 = ( sizeEdge * ps1 ) / points;
         int p2 = ( sizeEdge * ps2 ) / points;
 
         getPosition( x1, y1, p1, width, height );
-
         getPosition( x2, y2, p2, width, height );
 
+        // If the nodes are on the same edge then continue to the next node
         if( x1 == x2 && (x1 == 0 || x1 == width) ) continue;
         if( y1 == y2 && (y1 == 0 || y1 == height) ) continue;
 
+        // Use point-slope equation as a function of the longer edge
         if(abs(y1-y2)>abs(x1-x2))
         {
           double slope = (double)( x2 - x1 ) / (double)( y2 - y1 );
@@ -97,12 +104,14 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
 
           double diff = 0;
 
+          // Compute the sum of the darkness of the line
           for( int y = starty; y < endy; ++y )
           {
             int x = x1 + round((double)( y - y1 ) * slope);
             diff += (int)data[y*width+x];
           }
 
+          // If the line is on average darker than the other lines then use this line
           if( ( inverted && diff/(endy-starty) > difference ) || ( !inverted && diff/(endy-starty) < difference ) )
           {
             difference = diff/(endy-starty);
@@ -156,10 +165,13 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
     d  = pos[4];
     p  = pos[5];
 
+    // Add the length of the best line to the total length of all lines
     totalLength += sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) )/512;
 
+    // Push the edge pair onto the vector of required edges
     requiredEdges.push_back( pair< int, int >( pos[6], pos[7] ) );
 
+    // Draw the line using  the same point slope format as previously used
     if(abs(y1-y2)>abs(x1-x2))
     {
       int starty = min(y1,y2);
@@ -167,6 +179,8 @@ vector< pair< int, int > > drawRect( string input_image, string output_image, in
       for( int y = starty; y < endy; ++y )
       {
         int x = pos[0] + round((double)( y - pos[1] ) * slope2);
+ 
+        // Shade the new image and unshade the original
         if( inverted )
         {
           data2[y*width+x] = ( data2[y*width+x] < 255 - darkness ) ? data2[y*width+x] + darkness : 255;
@@ -245,8 +259,10 @@ int main( int argc, char **argv )
     if( vips_init( argv[0] ) )
       vips_error_exit( NULL ); 
 
+    // Compute the required edges
     vector< pair< int, int > > requiredEdges = drawRect( input_image, output_image, n, points, darkness, inverted );
 
+    // Compute the shortest path
     processEdges( requiredEdges, points, numPaths );
 
     vips_shutdown();

@@ -1,6 +1,6 @@
 CXX += -std=c++11 -stdlib=libc++ -O3 -g
 
-EXECUTABLE = RunGridDraw RunLineDraw RunLineRect RunLineEllipse
+EXECUTABLE = RunGridDraw RunLineDraw RunLineRect RunLinePolygon
 
 SRC = lib
 INCLUDE = include
@@ -21,8 +21,8 @@ RunLineDraw: $(OBJDIR)/lineDraw.o $(OBJDIR)/progressbar.o
 RunLineRect: $(OBJDIR)/lineRect.o $(OBJDIR)/progressbar.o $(OBJDIR)/shortestPath.o
 	$(CXX) $(CFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $(VIPS_FLAGS) $(OBJDIR)/lineRect.o $(OBJDIR)/shortestPath.o $(OBJDIR)/progressbar.o -o RunLineRect
 
-RunLineEllipse: $(OBJDIR)/lineEllipse.o $(OBJDIR)/progressbar.o $(OBJDIR)/shortestPath.o
-	$(CXX) $(CFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $(VIPS_FLAGS) $(OBJDIR)/lineEllipse.o $(OBJDIR)/shortestPath.o $(OBJDIR)/progressbar.o -o RunLineEllipse
+RunLinePolygon: $(OBJDIR)/linePolygon.o $(OBJDIR)/progressbar.o $(OBJDIR)/shortestPath.o
+	$(CXX) $(CFLAGS) $(CPPFLAGS) $(CXXFLAGS) $(LDLIBS) $(VIPS_FLAGS) $(OBJDIR)/linePolygon.o $(OBJDIR)/shortestPath.o $(OBJDIR)/progressbar.o -o RunLinePolygon
 
 $(OBJDIR)/%.o: $(SRC)/%.c $(INCLUDE)/%.h
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) $< -o $@

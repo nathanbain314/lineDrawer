@@ -196,10 +196,12 @@ vector<int> shortestPathFromPoint( vector< vector<int> > edges, int node, int st
   return nextPath;
 }
 
+// Runs the shortest path algorithm on a subset of the points
 void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int numToDo )
 {
   vector< vector<int> > edges(numPoints);
 
+  // Given array of required edges between nodes, create vector of arequired edges leading out of nodes
   for ( vector < pair<int,int> >::const_iterator it = requiredEdges.begin() ; it != requiredEdges.end(); ++it)
   {
     edges[it->first].push_back(it->second);
@@ -208,6 +210,7 @@ void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int 
 
   vector<int> even, odd;
 
+  // Split the nodes on whether or not they have an odd number of edges leading out of them
   for( int i = 0; i < numPoints; ++i )
   {
     int size = edges[i].size();
@@ -227,6 +230,8 @@ void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int 
   vector<int> pathVec;
   int minPath = INT_MAX/2;
 
+  // Compute the shortest path
+  // Start at the nodes with an odd number of edges leading out first and ignore the even
   if( odd.size() > 0 )
   {
     for( int j = 0; j < odd.size(); ++j )
@@ -254,6 +259,7 @@ void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int 
     }
   }
 
+  // Check to see if the shortest path contains every required edge
   bool broken = false;
   for( int i = 1; i <= pathVec.size()-1 ; ++i )
   {
@@ -278,9 +284,10 @@ void processEdges( vector< pair< int, int > > requiredEdges, int numPoints, int 
     }
   }
 
+  // Either print out the path failed or print out the path
   if( broken || requiredEdges.size() > 0 )
   {
-     cout << "Doesn't work\n";
+    cout << "Doesn't work\n";
     for( int i = requiredEdges.size()-1; i >= 0 ; --i )
     {
       cout << requiredEdges[i].first << " " << requiredEdges[i].second << ",";
