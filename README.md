@@ -43,21 +43,21 @@ After the program decides on what edges to use it computes the shortest path tha
 
 ##Examples  
 ####Input  
-![Input image](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/turing.jpeg)  
+![Input image](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/turing.jpeg)  
 ####RunLineDraw  
-![Draw](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/lineDraw.png)  
+![Draw](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/lineDraw.png)  
 Inverse  
-![Inverse](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/lineDrawInverse.png)  
+![Inverse](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/lineDrawInverse.png)  
 ####RunLineRect  
-![Rectangle](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/lineRect.png)  
+![Rectangle](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/lineRect.png)  
 ####RunLinePolygon  
 Triangle flattened and rotated  
-![Triangle](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/triangle.png)  
+![Triangle](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/triangle.png)  
 Pentagon narrowed and rotated  
-![Pentagon](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/pentagon.png)  
+![Pentagon](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/pentagon.png)  
 Hexagon  
-![Hexagon](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/hexagon.png)  
+![Hexagon](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/hexagon.png)  
 Ellipse with 64, 128, 256, 512 points and 256, 512, 1024, 2048 lines of darkness 256, 128, 64, 32.  
 ####Path
 I used the computed path and a single line of string to create a real example  
-![Ellipse](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/ellipse.png)  
+![Ellipse](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/ellipse.png)  
