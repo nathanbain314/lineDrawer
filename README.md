@@ -58,6 +58,7 @@ Pentagon narrowed and rotated
 Hexagon  
 ![Hexagon](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/hexagon.png)  
 Ellipse with 64, 128, 256, 512 points and 256, 512, 1024, 2048 lines of darkness 256, 128, 64, 32.  
-####Path
-I used the computed path and a single line of string to create a real example  
 ![Ellipse](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/ellipse.png)  
+####Path
+I used the computed path and a single line of string to create a real example on a 16 sided polygon. The first picture is on a wall, the second is silhouetted on a bright sky, and the third is the shdoow of the string
+![String](https://raw.githubusercontent.com/nathanbain314/lineDrawer/master/examples/string.png)  
