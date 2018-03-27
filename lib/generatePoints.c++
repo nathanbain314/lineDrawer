@@ -88,6 +88,9 @@ void createPolygon( vector< pointType > &inputPoints, vector< pointType > &edges
       edges.push_back(pointType(ps,1));
     }
 
+    x = min(x,width-1);
+    y = min(y,height-1);
+
     inputPoints.push_back( pointType(x, y) );
   }
 }
